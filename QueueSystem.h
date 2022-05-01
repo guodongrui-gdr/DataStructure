@@ -114,8 +114,8 @@ private:
 			// 如果顾客队列中还有人,则将其放到窗口中
 			if (!customer_list.empty())
 			{
-				Customer* customer;
-				*customer = customer_list.front();
+				Customer* customer=new Customer();
+				*customer= customer_list.front();
 				windows[current_event->event_type].ServiceCustomer(*customer);
 				Event tmpEvent(current_event->occur_time + customer->service_time, current_event->event_type);
 				event_list.push_back(tmpEvent);
