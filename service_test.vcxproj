@@ -145,6 +145,7 @@
     <ClInclude Include="Customer.h" />
     <ClInclude Include="Event.h" />
     <ClInclude Include="QueueSystem.h" />
+    <ClInclude Include="random.h" />
     <ClInclude Include="ServiceWindows.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
