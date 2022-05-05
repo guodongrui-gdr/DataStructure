@@ -1,22 +1,22 @@
 #include <random>
+#include<cmath>
+
 #ifndef RANDOM_H
 #define RANDOM_H
 
-//指数分布函数,min为下界,max为上界
-int exprand(int min,int max)
+//指数分布函数,min为下界
+int exprand(double lamda,int min,int max)
 {	
-	double lamda = 2 / (double(min)+double(max));
 	double pV = 0.0;
-	while (pV<min || pV>max) 
+	while (true)
 	{
-		while (true)
-		{
-			pV = (double)rand() / (double)RAND_MAX;
-			if (pV != 1) break;
-		}
-		pV = (-1.0 / lamda) * log(1 - pV);
-		pV = (int)pV;
+		srand(time(NULL));
+		pV = (double)rand() / (double)RAND_MAX;
+		if (pV != 1) break;
 	}
+	pV = (-1.0 / lamda) * log(1 - pV);
+	pV = round(pV);
+	if (pV > max) exit(-1);
 	return pV;
 }
 //均匀分布函数,min为下界,max为上界

@@ -16,7 +16,7 @@ struct Customer
 		vip = 0;
 		int i;
 		srand(time(NULL));
-		i = rand() % 2;
+		i = rand() % 10;
 		if (i == 1) vip = 1;
 	}
 };

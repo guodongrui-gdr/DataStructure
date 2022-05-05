@@ -16,9 +16,12 @@ public:
 	{
 		delete[] windows;
 	}
-	void simulate()
+	void simulate(int num)
 	{
-		run();
+		for (int i = 0; i < num; ++i)
+		{
+			run();
+		}
 	}
 
 	// 提供外部接口用于获取结果
@@ -39,33 +42,46 @@ public:
 		return serviced_customer_num;
 	}
 private:
+	int day = 1;
 	void run()
 	{
 		this->init();
-		while (current_event->occur_time<=total_service_time && current_event->occur_time>=0)
+		while (event_list.size())
 		{
 			if (current_event->event_type == -1)
 				customerArrived();
 			if (current_event->event_type >= 0)
 				customerDeparture();
-			*current_event = event_list.front();
+				*current_event = event_list.front();
 			event_list.pop_front();
 		}
 		no_service_num = customer_list.size();
+		cout << "-------------第" << day << "天---------------" << endl;
+		cout << "平均每名顾客等待时间为" << get_avr_wait_time() << endl;
+		cout << "服务顾客数为" << get_serviced_customer_num() << endl;
+		cout << "最大等待人数为" << get_max_wait_num() << endl;
+		day++;
 		this->makeEmpty();
 	}
 	// 初始化
 	void init()
 	{
+		double l = (double)total_customer_num / (double)total_service_time;
 		this->windows = new ServiceWindows[windows_num];
-		for (int i = 0; i < total_customer_num; ++i)
+		while (event_list.size()<total_customer_num)
 		{
-			Event* event = new Event(unifrand(0, total_service_time));
+			if (event_list.size() == 0)
+			{
+				Event* event = new Event(exprand(l, 0, total_service_time));
+				event_list.push_back(*event);
+			}
+			Event* event = new Event(event_list.back().occur_time+exprand(l, event_list.back().occur_time,total_service_time));
 			event_list.push_back(*event);
 		}
-		event_list=Eorder(event_list);
-		current_event = new Event(exprand(0, total_service_time));
+		Eorder(event_list, 0,event_list.size()-1);
+		current_event = new Event(exprand(l,0, total_service_time));
 		*current_event = event_list.front();
+		
 	}
 	// 清空所有队列并设置所有窗口为空闲状态
 	void makeEmpty()
@@ -74,6 +90,10 @@ private:
 			windows[i].setIdle();
 		while (!customer_list.empty()) customer_list.pop_front();
 		while (!event_list.empty()) event_list.pop_front();
+		no_service_num = 0;
+		max_wait_num = 0;
+		serviced_customer_num = 0;
+		avr_wait_time = 0;
 	}
 	// 获取空闲窗口索引
 	int getIdleWindow()
@@ -90,11 +110,11 @@ private:
 	void customerArrived()
 	{
 		// 将顾客加入顾客队列中
-		Customer* customer = new Customer(exprand(1, max_service_time), current_event->occur_time);
+		Customer* customer = new Customer(unifrand(1, max_service_time), current_event->occur_time);
 		if (!customer) exit(-1);
 		customer_list.push_back(*customer);
-		Corder(customer_list);
-
+		if (customer_list.size() > max_wait_num) max_wait_num++;
+		Corder(customer_list,0,customer_list.size()-1);
 		// 如果有空闲窗口就将顾客送到窗口
 		int Idlewindow = getIdleWindow();
 		if (Idlewindow >= 0)
@@ -108,7 +128,7 @@ private:
 			// 将该顾客的离开事件放入事件队列中,离开时间为到达时间加服务时间
 			Event* departureEvent = new Event(current_event->occur_time + customer->service_time, Idlewindow);
 			event_list.push_back(*departureEvent);
-			event_list=Eorder(event_list);
+			Eorder(event_list,0, event_list.size()-1);
 		}
 		delete customer;
 	}
@@ -129,7 +149,7 @@ private:
 				windows[current_event->event_type].ServiceCustomer(*customer);
 				Event tmpEvent(current_event->occur_time + customer->service_time, current_event->event_type);
 				event_list.push_back(tmpEvent);
-				event_list=Eorder(event_list);
+				Eorder(event_list, 0, event_list.size()-1);
 				delete customer;
 			}
 			// 如果顾客队列中没人,则将此窗口设为空闲
@@ -138,40 +158,81 @@ private:
 		}
 	}
 	// 对事件队列进行排序,先发生的在前
-	deque<Event> Eorder(deque<Event> q)
+	void Eorder(deque<Event>& d ,int left,int right)
 	{	
-		for (int i = 0; i <= q.size(); i++)
-		{
-			for (int j = i + 1; j <= q.size() - 1; j++)
-			{
-				if (q[i].occur_time > q[j].occur_time)
-				{
-					swap(q[i], q[j]);
-				}
-
+		if (left > right)
+			return;
+		int i, j, temp;
+		temp = d[left].occur_time;
+		i = left;
+		j = right;
+		while (i != j) {
+			while (d[j].occur_time >= temp && j > i)
+				j--;
+			while (d[i].occur_time <= temp && j > i)
+				i++;
+			if (i < j) {
+				swap(d[i], d[j]);
 			}
 		}
-		return q;
+		swap(d[i], d[left]);
+
+		Eorder(d,left, i-1);
+		Eorder(d,i + 1, right);
+		//int i, j,temp;
+		//for (i = 0; i < n; i++) 
+		//{
+		//	temp = d[i].occur_time;
+
+		//	for (j = i; j > 0 && d[j - 1].occur_time > temp; j--)
+		//		swap(d[j],d[j-1]); // 把已排序元素逐步向后挪位
+
 	}
 	// 对顾客队列进行排序,优先级高的在前
-	deque<Customer> Corder(deque<Customer> q)
+	void Corder(deque<Customer>& q,int left,int right)
 	{
-		for (int i = 0; i <= q.size(); i++)
-		{
-			for (int j = i + 1; j <= q.size() - 1; j++)
+		/*if (left > right)
+			return;
+		int i, j, temp;
+		temp = q[left].vip;
+		i = left;
+		j = right;
+		while (i != j) {
+			while (q[j].vip <= temp && j > i)
+				j--;
+			while (q[i].vip >= temp && j > i)
+				i++;
+			if (i < j) 
 			{
-				if (q[i].vip > q[j].vip)
+				swap(q[i], q[j]);
+			}
+			if (i == j)
+			{
+				if (q[i].arrive_time > q[j].arrive_time)
+					swap(q[i],q[j]);
+			}
+		}
+		swap(q[i], q[left]);
+
+		Corder(q, left, i - 1);
+		Corder(q, i + 1, right);*/
+		for (int i = 1; i < q.size(); ++i)
+		{
+			for (int j = 1; j < q.size() - i + 1; ++j)
+			{
+				if (q[i].vip > q[i - 1].vip)
 				{
-					swap(q[i], q[j]);
+					swap(q[i], q[i - 1]);
 				}
-				if (q[i].vip == q[j].vip)
+				if (q[i].vip == q[i - 1].vip)
 				{
-					if (q[i].arrive_time < q[j].arrive_time)
-						swap(q[i], q[j]);
+					if (q[i].arrive_time < q[i - 1].arrive_time)
+					{
+						swap(q[i], q[i - 1]);
+					}
 				}
 			}
 		}
-		return q;
 	}
 
 	int windows_num;		// 窗口总数K
