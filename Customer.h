@@ -4,7 +4,6 @@
 #include<cstdlib>
 #include<ctime>
 
-#define lamda 0.1
 struct Customer
 {
 	int arrive_time;// 顾客到达时间
@@ -15,7 +14,6 @@ struct Customer
 	{	
 		vip = 0;
 		int i;
-		srand(time(NULL));
 		i = rand() % 10;
 		if (i == 1) vip = 1;
 	}

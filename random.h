@@ -4,7 +4,7 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
-//指数分布函数,min为下界
+//指数分布函数
 int exprand(double lamda)
 {	
 	double pV = 0.0;
@@ -17,6 +17,7 @@ int exprand(double lamda)
 		}
 	}
 	pV = (-1.0 / lamda) * log(1 - pV);
+	pV = (int)pV;
 	return pV;
 }
 //均匀分布函数,min为下界,max为上界

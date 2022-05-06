@@ -2,12 +2,15 @@
 #define QUEUESYSTEM_H
 #include"Event.h"
 #include"ServiceWindows.h"
+#include"order.h"
 #include<deque>
 #include<algorithm>
+
 using namespace std;
 
 class QueueSystem
 {
+	
 public:
 	QueueSystem(int total_service_time, int total_customer_num, int windows_num, int max_service_time)
 		:total_service_time(total_service_time), total_customer_num(total_customer_num), windows_num(windows_num), max_service_time(max_service_time)
@@ -16,12 +19,9 @@ public:
 	{
 		delete[] windows;
 	}
-	void simulate(int num)
+	void simulate()
 	{
-		for (int i = 0; i < num; ++i)
-		{
-			run();
-		}
+		run();
 	}
 
 	// 提供外部接口用于获取结果
@@ -42,7 +42,6 @@ public:
 		return serviced_customer_num;
 	}
 private:
-	int day = 1;
 	void run()
 	{
 		this->init();
@@ -52,36 +51,35 @@ private:
 				customerArrived();
 			if (current_event->event_type >= 0)
 				customerDeparture();
-				*current_event = event_list.front();
+			*current_event = event_list.front();
 			event_list.pop_front();
 		}
 		no_service_num = customer_list.size();
-		cout << "-------------第" << day << "天---------------" << endl;
-		cout << "平均每名顾客等待时间为" << get_avr_wait_time() << endl;
-		cout << "办事大厅关闭时仍未被服务的人数" << get_no_service_num() << endl;
-		cout << "最大等待人数为" << get_max_wait_num() << endl;
-		day++;
+
 		this->makeEmpty();
 	}
 	// 初始化
 	void init()
 	{
-		double l = (double)total_customer_num / (double)total_service_time;
+		double lamda = (double)total_customer_num / (double)total_service_time;
 		this->windows = new ServiceWindows[windows_num];
-		while (event_list.size()<total_customer_num)
+		while (event_list.size() < total_customer_num)
 		{
 			if (event_list.size() == 0)
 			{
-				Event* event = new Event(exprand(l));
+				Event* event = new Event(exprand(lamda));
 				event_list.push_back(*event);
 			}
-			Event* event = new Event(event_list.back().occur_time+ exprand(l));
+			Event* event = new Event(event_list.back().occur_time + exprand(lamda));
 			event_list.push_back(*event);
 		}
-		Eorder(event_list, 0,event_list.size()-1);
-		current_event = new Event(exprand(l));
+		Eorder(event_list, 0, event_list.size() - 1);
+		current_event = new Event(exprand(lamda));
 		*current_event = event_list.front();
-		
+		avr_wait_time = 0;
+		serviced_customer_num = 0;
+		max_wait_num = 0;
+		no_service_num = 0;
 	}
 	// 清空所有队列并设置所有窗口为空闲状态
 	void makeEmpty()
@@ -90,10 +88,6 @@ private:
 			windows[i].setIdle();
 		while (!customer_list.empty()) customer_list.pop_front();
 		while (!event_list.empty()) event_list.pop_front();
-		no_service_num = 0;
-		max_wait_num = 0;
-		serviced_customer_num = 0;
-		avr_wait_time = 0;
 	}
 	// 获取空闲窗口索引
 	int getIdleWindow()
@@ -108,27 +102,32 @@ private:
 
 	// 处理顾客到达事件
 	void customerArrived()
-	{
+	{	
 		// 将顾客加入顾客队列中
 		Customer* customer = new Customer(unifrand(1, max_service_time), current_event->occur_time);
 		if (!customer) exit(-1);
-		customer_list.push_back(*customer);
-		if (customer_list.size() > max_wait_num) max_wait_num++;
-		Corder(customer_list,0,customer_list.size()-1);
-		// 如果有空闲窗口就将顾客送到窗口
-		int Idlewindow = getIdleWindow();
-		if (Idlewindow >= 0)
+		// 如果顾客到达时间加处理时间大于总服务时间,则顾客直接离开
+		if (customer->arrive_time + customer->service_time < total_service_time)
 		{
-			serviced_customer_num++; // 已被服务的顾客数+1
-			windows[Idlewindow].ServiceCustomer(customer_list.front());
-			customer_list.pop_front();
-			//event_list.pop();
-			windows[Idlewindow].setBusy();
+			customer_list.push_back(*customer);
+			if (customer_list.size() > max_wait_num) max_wait_num++;
+			mergesort(customer_list);
+			// 如果有空闲窗口就将顾客送到窗口
+			int Idlewindow = getIdleWindow();
+			if (Idlewindow >= 0)
+			{
+				serviced_customer_num++; // 已被服务的顾客数+1
+				windows[Idlewindow].ServiceCustomer(customer_list.front());
+				customer_list.pop_front();
+				//event_list.pop();
+				windows[Idlewindow].setBusy();
 
-			// 将该顾客的离开事件放入事件队列中,离开时间为到达时间加服务时间
-			Event* departureEvent = new Event(current_event->occur_time + customer->service_time, Idlewindow);
-			event_list.push_back(*departureEvent);
-			Eorder(event_list,0, event_list.size()-1);
+				// 将该顾客的离开事件放入事件队列中,离开时间为到达时间加服务时间
+				Event* DepreEvent = new Event(current_event->occur_time + customer->service_time, Idlewindow);
+				event_list.push_back(*DepreEvent);
+				mergesort(event_list);
+			}
+			
 		}
 		delete customer;
 	}
@@ -141,7 +140,7 @@ private:
 			avr_wait_time += current_event->occur_time - windows[current_event->event_type].getCustomerArriveTime() - windows[current_event->event_type].getCustomerServiceTime();
 			// 如果顾客队列中还有人,则将其放到窗口中
 			if (!customer_list.empty())
-			{
+			{	
 				serviced_customer_num++;
 				Customer* customer=new Customer();
 				*customer = customer_list.front();
@@ -149,7 +148,7 @@ private:
 				windows[current_event->event_type].ServiceCustomer(*customer);
 				Event tmpEvent(current_event->occur_time + customer->service_time, current_event->event_type);
 				event_list.push_back(tmpEvent);
-				Eorder(event_list, 0, event_list.size()-1);
+				mergesort(event_list);
 				delete customer;
 			}
 			// 如果顾客队列中没人,则将此窗口设为空闲
@@ -235,6 +234,7 @@ private:
 		}
 	}
 
+	
 	int windows_num;		// 窗口总数K
 	int total_service_time; // 总服务时间T
 	int total_customer_num; // 总顾客数C
