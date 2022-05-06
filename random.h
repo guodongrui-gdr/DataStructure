@@ -5,18 +5,18 @@
 #define RANDOM_H
 
 //指数分布函数,min为下界
-int exprand(double lamda,int min,int max)
+int exprand(double lamda)
 {	
 	double pV = 0.0;
 	while (true)
 	{
-		srand(time(NULL));
 		pV = (double)rand() / (double)RAND_MAX;
-		if (pV != 1) break;
+		if (pV != 1)
+		{
+			break;
+		}
 	}
 	pV = (-1.0 / lamda) * log(1 - pV);
-	pV = round(pV);
-	if (pV > max) exit(-1);
 	return pV;
 }
 //均匀分布函数,min为下界,max为上界

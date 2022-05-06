@@ -58,7 +58,7 @@ private:
 		no_service_num = customer_list.size();
 		cout << "-------------第" << day << "天---------------" << endl;
 		cout << "平均每名顾客等待时间为" << get_avr_wait_time() << endl;
-		cout << "服务顾客数为" << get_serviced_customer_num() << endl;
+		cout << "办事大厅关闭时仍未被服务的人数" << get_no_service_num() << endl;
 		cout << "最大等待人数为" << get_max_wait_num() << endl;
 		day++;
 		this->makeEmpty();
@@ -72,14 +72,14 @@ private:
 		{
 			if (event_list.size() == 0)
 			{
-				Event* event = new Event(exprand(l, 0, total_service_time));
+				Event* event = new Event(exprand(l));
 				event_list.push_back(*event);
 			}
-			Event* event = new Event(event_list.back().occur_time+exprand(l, event_list.back().occur_time,total_service_time));
+			Event* event = new Event(event_list.back().occur_time+ exprand(l));
 			event_list.push_back(*event);
 		}
 		Eorder(event_list, 0,event_list.size()-1);
-		current_event = new Event(exprand(l,0, total_service_time));
+		current_event = new Event(exprand(l));
 		*current_event = event_list.front();
 		
 	}
