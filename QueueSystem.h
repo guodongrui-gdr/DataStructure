@@ -73,7 +73,7 @@ private:
 			Event* event = new Event(event_list.back().occur_time + exprand(lamda));
 			event_list.push_back(*event);
 		}
-		Eorder(event_list, 0, event_list.size() - 1);
+		mergesort(event_list);
 		current_event = new Event(exprand(lamda));
 		*current_event = event_list.front();
 		avr_wait_time = 0;
